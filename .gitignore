@@ -1,0 +1,10 @@
+__init__.py
+/.venv
+/.env
+/.vscode
+/backend/images
+__pycache__
+*.pyc
+*.pyo
+/backend/.env
+# Ignore Python cache files
