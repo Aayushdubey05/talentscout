@@ -5,9 +5,12 @@ from fastapi import APIRouter, HTTPException, status, middleware, Depends, File,
 from src.schema.user import Reg_of_users
 from sqlalchemy import select
 from typing import Optional
-from llm_models.langchain_stuff import extract_pdf_text
+from src.llm_models.langchain_stuff import extract_pdf_text
+from src.middleware.message_role import MessageRole
 chat_router= APIRouter()
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime
+from src.llm_models.models_from_huggingface import langchain_llm_mode
 @chat_router.get("/chat/{username}",status_code=status.HTTP_200_OK)
 async def get_conversation_history(username: str, DB: AsyncSession= Depends(get_db)):
     history = await DB.execute(
@@ -70,48 +73,61 @@ async def update_conversation_title(
     
 @chat_router.post("/conversations/{conversation_id}/add_message")
 async def add_message(
+        conversation_id: int,
         role: str,
-        content: str,
-        username: str | None = Form(...) ,
-        conversation_id: int = Form(...),
-        file: Optional[UploadFile] | None= Form(None) ,
+        content: Optional[str] = Form(None),
+        username: Optional[str] = Form(None),
+        file: Optional[UploadFile] | None= File(None) ,
         prompt: Optional[str] | None= Form(None),
         DB: AsyncSession = Depends(get_db)
 ):
-    result = await DB.execute(
-        select(Conversation).where(Conversation.id == conversation_id)
-    )
+    try:
+        result = await DB.execute(
+            select(Conversation).where(Conversation.id == conversation_id)
+        )
 
-    conversation = result.scalar_one_or_none()
+        conversation = result.scalar_one_or_none()
 
 
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+
+
+        message_content = await extract_pdf_text(file)
+        content = message_content + content
+        
+
+        # if file:
+        #     pdf_content = await extract_pdf_text(file)
+        #     content = pdf_content
+
+        # elif prompt:
+        #     content = prompt
+
+        # else:
+        #     return {"error": "No input provided"}
+
+
+
+        new_msg = Message(conversation_id=conversation.id,role=role, content=content,username = username, created_at = datetime.utcnow())
+        DB.add(new_msg)
+        await DB.commit()
+        await DB.refresh(new_msg)
+
+        return {
+            "message": "Messages added successfully",
+            "message_id": new_msg.id,
+            "role": new_msg.role,
+            "content": new_msg.content,
+            "timestamp": new_msg.created_at
+        }
     
-
-    if file:
-        pdf_content = await extract_pdf_text(file)
-        content = pdf_content
-    
-    elif prompt:
-        content = prompt
-    
-    else:
-        return {"error": "No input provided"}
-
-
-
-    new_msg = Message(conversation_id=conversation.id,role=role, content=content)
-    DB.add(new_msg)
-    await DB.commit()
-    await DB.refresh(new_msg)
-
-    return {
-        "message_id": new_msg.id,
-        "role": new_msg.role,
-        "content": new_msg.content,
-        "timestamp": new_msg.created_at
-    }
+    except Exception as e:
+        await DB.rollback()
+        raise HTTPException(
+            status_code= status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error while adding messages "
+        ) 
     
 
 @chat_router.get("/conversations/{conversation_id}/messages")
@@ -125,19 +141,19 @@ async def get_conversation_messages(conversation_id:int, DB: AsyncSession = Depe
     return [{"role": m.role, "content": m.content, "timestamp": m.created_at} for m in messages ]
 
 
-@chat_router.post("/chat")
-async def chat_with_llm(
-    username : str = Form(...),
-    conversation_id : str = Form(...),
-    prompt: Optional[str] = Form(None),
-    file: Optional[UploadFile] = Form(None),
-    DB: AsyncSession = Depends(get_db) 
-):
+# @chat_router.post("/chat")
+# async def chat_with_llm(
+#     username : str = Form(...),
+#     conversation_id : str = Form(...),
+#     prompt: Optional[str] = Form(None),
+#     file: Optional[UploadFile] = Form(None),
+#     DB: AsyncSession = Depends(get_db) 
+# ):
     
-    if file:
-        pdf_content = await extract_pdf_text(file)
-        user_input = pdf_content
-    elif prompt:
-        user_input = pdf_content
-    else:
-        return {"error": "No input provided "}
+#     if file:
+#         pdf_content = await extract_pdf_text(file)
+#         user_input = pdf_content
+#     elif prompt:
+#         user_input = pdf_content
+#     else:
+#         return {"error": "No input provided "}

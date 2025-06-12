@@ -47,3 +47,9 @@ async def set_context_window(conversation_id: int,DB: AsyncSession = Depends(get
     context = list(reversed(history))
 
     prompt_messages = [{"role": m.role, "content": m.content} for m in context]
+    return prompt_messages
+
+async def langchain_llm_mode(user_input, username, conversation_id):
+    response = requests.post(
+        url="https://openrouter.ai/api/v1/chat/completions"
+    )
