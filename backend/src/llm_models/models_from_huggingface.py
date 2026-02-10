@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException
 from sqlalchemy import select
 
-prompt = input("Enter about your experince coding background and techstack you work on ")
+prompt = input("Include the data u want as a summarizer? ")
 
 response = requests.post(
     url="https://openrouter.ai/api/v1/chat/completions",
@@ -19,11 +19,11 @@ response = requests.post(
         "Content-Type": "application/json",
     },
     data= json.dumps({
-        "model": "sarvamai/sarvam-m:free",
+        "model": "qwen/qwen3-coder:free",
         "messages": [
             {
                 "role": "system",
-                "content": "You are a highly experienced technical interviewer with 30 years of experience. Ask one coding question at a time. along with that also ask core concepts of engineering related to DBMS and OS do include advance concept if user has 4+ years of experience + question on the techstack user have metioned "
+                "content": "Summarize the data which ever u will get in the input. Do include the important points of the data and TLDR of the data which is inlcuded in the prompts"
             },
             {
                 "role": "user",
@@ -37,19 +37,20 @@ response = requests.post(
 print(response.text)
 
 
-async def set_context_window(conversation_id: int,DB: AsyncSession = Depends(get_db)):
-    result = await DB.execute(
-        select(Message).where(Message.conversation_id == conversation_id)
-        .order_by(Message.created_at.desc())
-        .limit(10)
-    )
-    history = result.scalars().all()
-    context = list(reversed(history))
+# async def set_context_window(conversation_id: int,DB: AsyncSession = Depends(get_db)):
+#     result = await DB.execute(
+#         select(Message).where(Message.conversation_id == conversation_id)
+#         .order_by(Message.created_at.desc())
+#         .limit(10)
+#     )
+#     history = result.scalars().all()
+#     context = list(reversed(history))
 
-    prompt_messages = [{"role": m.role, "content": m.content} for m in context]
-    return prompt_messages
+#     prompt_messages = [{"role": m.role, "content": m.content} for m in context]
+#     return prompt_messages
 
-async def langchain_llm_mode(user_input, username, conversation_id):
-    response = requests.post(
-        url="https://openrouter.ai/api/v1/chat/completions"
-    )
+# ## We need to work on it... still in progress
+# async def langchain_llm_mode(user_input, username, conversation_id):
+#     response = requests.post(
+#         url="https://openrouter.ai/api/v1/chat/completions"
+#     )
