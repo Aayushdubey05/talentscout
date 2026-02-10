@@ -25,9 +25,9 @@ class Chat_with_AI:
                 assistance_response = f"You said : '{prompt}'. Here we will get the response from AI "
 
                 for chunk in assistance_response.split():
-                    full_response += chunk + " "
+                    full_response += f"{chunk} "
                     time.sleep(0.05)
-                    message_placeholder.markdown(full_response+"▌")
+                    message_placeholder.markdown(f"{full_response} ")
 
                 message_placeholder.markdown(full_response)
 

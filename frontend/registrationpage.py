@@ -27,14 +27,13 @@ def registration():
             username: str = st.text_input("Give your self Username")
             email: str = st.text_input("Your email")
             password: str = st.text_input("Password make sure u remember this", type="password")
-            submitted = st.form_submit_button("Submit")
-
-            if submitted:
+            if submitted := st.form_submit_button("Submit"):
                 sending = {
                     'UserName': username,
                     'Email': email,
                     'Password': password
                 }
+                
                 try:
                     res = requests.post("http://localhost:5000/api/reg", 
                                       json=sending,
