@@ -7,4 +7,5 @@ __pycache__
 *.pyc
 *.pyo
 /backend/.env
+/backend/dev.md
 # Ignore Python cache files
