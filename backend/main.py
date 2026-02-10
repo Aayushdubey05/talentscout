@@ -21,7 +21,7 @@ origins = [
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print(f"Starting the Server")
-    print(settings.DATABASE_URL)
+    # print(settings.DATABASE_URL)
     await create_all_tables(engine)     
     yield
     print(f"Stoping the server")
